@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using PongGame.Core;
+using PongGame.Core.Rendering;
 using PongGame.Entities;
 using PongGame.UI;
 using System;
@@ -33,6 +34,7 @@ namespace PongGame.Scenes
         private SpriteFont? _uiFont;
         private Texture2D? _pixel;
         private SpriteBatch? _spriteBatch;
+        private RenderLayerManager? _renderer;
         private GameState _state;
         private float _stateTimer;
         private float _matchTimeRemaining;
@@ -64,13 +66,14 @@ namespace PongGame.Scenes
             _pixel.SetData([Color.White]);
 
             _spriteBatch = new SpriteBatch(graphicsDevice);
+            _renderer = new RenderLayerManager(_spriteBatch);
 
             // Left paddle
-            float leftStartX = GameSettings.PADDLE_MARGIN + (GameSettings.PADDLE_WIDTH / 2f);
+            const float leftStartX = GameSettings.PADDLE_MARGIN + (GameSettings.PADDLE_WIDTH / 2f);
             _leftPaddle = new Paddle(leftStartX, 1);
 
             // Right paddle
-            float rightStartX = GameSettings.SCREEN_WIDTH - GameSettings.PADDLE_MARGIN - (GameSettings.PADDLE_WIDTH / 2f);
+            const float rightStartX = GameSettings.SCREEN_WIDTH - GameSettings.PADDLE_MARGIN - (GameSettings.PADDLE_WIDTH / 2f);
             _rightPaddle = new Paddle(rightStartX, 2);
 
             // Ball
@@ -80,7 +83,7 @@ namespace PongGame.Scenes
             // Play Again button: centered, Y=440, 260x56
             const int btnPlayAgainWidth = 260;
             const int btnPlayAgainHeight = 56;
-            int btnPlayAgainX = (GameSettings.SCREEN_WIDTH - btnPlayAgainWidth) / 2;
+            const int btnPlayAgainX = (GameSettings.SCREEN_WIDTH - btnPlayAgainWidth) / 2;
             const int btnPlayAgainY = 440;
 
             _btnPlayAgain = new Button(
@@ -94,7 +97,7 @@ namespace PongGame.Scenes
             // Menu button: centered, 70px below Play Again
             const int btnMenuWidth = 260;
             const int btnMenuHeight = 56;
-            int btnMenuX = (GameSettings.SCREEN_WIDTH - btnMenuWidth) / 2;
+            const int btnMenuX = (GameSettings.SCREEN_WIDTH - btnMenuWidth) / 2;
             const int btnMenuY = btnPlayAgainY + 70;
 
             _btnMenu = new Button(
@@ -184,7 +187,7 @@ namespace PongGame.Scenes
 
             if (_stateTimer >= 1.0f)
             {
-                _stateTimer -= 1.0f;
+                _stateTimer--;
                 _countdownStep--;
 
                 if (_countdownStep <= 0)
@@ -277,7 +280,7 @@ namespace PongGame.Scenes
         {
             if (_spriteBatch == null || _pixel == null || _displayFont == null || _scoreFont == null || _uiFont == null ||
                 _leftPaddle == null || _rightPaddle == null || _ball == null ||
-                _btnPlayAgain == null || _btnMenu == null)
+                _btnPlayAgain == null || _btnMenu == null || _renderer == null)
             {
                 return;
             }
@@ -285,38 +288,32 @@ namespace PongGame.Scenes
             // 1. Clear background
             _spriteBatch.GraphicsDevice.Clear(Theme.Background);
 
-            _spriteBatch.Begin();
-
-            // 2. Vertical dashed center line
-            DrawCenterLine();
-
-            // 3. Draw HUD
-            DrawHUD();
-
-            // 4. Draw paddles
-            _leftPaddle.Draw(_spriteBatch, _pixel);
-            _rightPaddle.Draw(_spriteBatch, _pixel);
-
-            // 5. Draw ball (only if active)
-            _ball.Draw(_spriteBatch, _pixel);
-
-            // 6. State-specific overlays
-            switch (_state)
+            _renderer.ExecuteGlowPass(sb =>
             {
-                case GameState.Countdown:
-                    DrawCountdownOverlay();
-                    break;
+                _leftPaddle.DrawGlow(sb, _pixel);
+                _rightPaddle.DrawGlow(sb, _pixel);
+                _ball.DrawGlow(sb, _pixel);
+            });
 
-                case GameState.Scored:
-                    DrawScoredOverlay();
-                    break;
+            _renderer.ExecuteGameplayPass(sb =>
+            {
+                DrawCenterLine();
+                _leftPaddle.Draw(sb, _pixel);
+                _rightPaddle.Draw(sb, _pixel);
+                _ball.Draw(sb, _pixel);
+            });
 
-                case GameState.GameOver:
-                    DrawGameOverOverlay();
-                    break;
-            }
-
-            _spriteBatch.End();
+            _renderer.ExecuteUIPass(sb =>
+            {
+                DrawHUD();
+                // State overlays
+                switch (_state)
+                {
+                    case GameState.Countdown: DrawCountdownOverlay(); break;
+                    case GameState.Scored:    DrawScoredOverlay();    break;
+                    case GameState.GameOver:  DrawGameOverOverlay();  break;
+                }
+            });
         }
 
         private void DrawCenterLine()
@@ -427,7 +424,7 @@ namespace PongGame.Scenes
             if (winner == 0)
             {
                 // Draw "DRAW!" centered at Y=200
-                string drawText = "DRAW!";
+                const string drawText = "DRAW!";
                 Vector2 drawTextSize = _displayFont!.MeasureString(drawText);
                 float drawTextX = (GameSettings.SCREEN_WIDTH - drawTextSize.X) / 2f;
                 _spriteBatch.DrawString(_displayFont, drawText, new Vector2(drawTextX, 200f), Theme.UIText);

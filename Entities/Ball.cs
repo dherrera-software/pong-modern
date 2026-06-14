@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using PongGame.Core;
+using PongGame.Core.Rendering;
 
 namespace PongGame.Entities
 {
@@ -204,6 +205,20 @@ namespace PongGame.Entities
                 GameSettings.BALL_SIZE
             );
             spriteBatch.Draw(pixel, ballRect, Theme.BallColor);
+        }
+
+        /// <summary>
+        /// Draws the neon glow around the ball using GlowRenderer.
+        /// </summary>
+        /// <param name="spriteBatch">The active sprite batch.</param>
+        /// <param name="pixel">A 1x1 white texture.</param>
+        public void DrawGlow(SpriteBatch spriteBatch, Texture2D pixel)
+        {
+            if (!IsActive)
+            {
+                return;
+            }
+            GlowRenderer.DrawRectGlow(spriteBatch, pixel, Bounds, Theme.BallColor);
         }
     }
 }
