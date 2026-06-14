@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+
+# MonoGame Content Pipeline output
+Content/bin/
+Content/obj/
+
+# IDE
+.vscode/
+.vs/
+*.user
+
+# OS
+Thumbs.db
+.DS_Store
