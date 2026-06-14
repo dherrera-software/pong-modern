@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using PongGame.Core;
+using PongGame.Core.Rendering;
 
 namespace PongGame.Entities
 {
@@ -77,6 +78,16 @@ namespace PongGame.Entities
 
             // Draw the solid paddle rectangle on top in AccentColor
             spriteBatch.Draw(pixel, Bounds, AccentColor);
+        }
+
+        /// <summary>
+        /// Draws the neon glow around the paddle using GlowRenderer.
+        /// </summary>
+        /// <param name="spriteBatch">The active sprite batch.</param>
+        /// <param name="pixel">A 1x1 white texture.</param>
+        public void DrawGlow(SpriteBatch spriteBatch, Texture2D pixel)
+        {
+            GlowRenderer.DrawRectGlow(spriteBatch, pixel, Bounds, AccentColor);
         }
 
         public void ResetPosition()

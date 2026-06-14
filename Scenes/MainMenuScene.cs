@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using PongGame.Core;
+using PongGame.Core.Rendering;
 using PongGame.UI;
 using System;
 
@@ -18,6 +19,7 @@ namespace PongGame.Scenes
         private Button? _btn1v1;
         private Button? _btnVsAI;
         private SpriteBatch? _spriteBatch;
+        private RenderLayerManager? _renderer;
 
         /// <summary>
         /// Initializes the scene. No specific state to reset for the main menu.
@@ -36,6 +38,7 @@ namespace PongGame.Scenes
             _displayFont = content.Load<SpriteFont>("Fonts/DisplayFont");
             _uiFont = content.Load<SpriteFont>("Fonts/UIFont");
             _spriteBatch = new SpriteBatch(graphicsDevice);
+            _renderer = new RenderLayerManager(_spriteBatch);
 
             // Create 1x1 white pixel texture
             _pixel = new Texture2D(graphicsDevice, 1, 1);
@@ -88,7 +91,7 @@ namespace PongGame.Scenes
         /// <param name="spriteBatch">The default sprite batch (not used directly, we use our local _spriteBatch).</param>
         public void Draw(SpriteBatch spriteBatch)
         {
-            if (_spriteBatch == null || _pixel == null || _displayFont == null || _uiFont == null)
+            if (_spriteBatch == null || _pixel == null || _displayFont == null || _uiFont == null || _renderer == null)
             {
                 return;
             }
@@ -96,57 +99,61 @@ namespace PongGame.Scenes
             // 1. Clear background
             _spriteBatch.GraphicsDevice.Clear(Theme.Background);
 
-            _spriteBatch.Begin();
-
-            // 2. Center dashed line (vertical)
-            const int dashHeight = GameSettings.CENTER_LINE_DASH_HEIGHT;
-            const int gap = GameSettings.CENTER_LINE_GAP;
-            const int lineX = (1280 - 3) / 2;
-            for (int y = 0; y < 720; y += dashHeight + gap)
+            _renderer.ExecuteGlowPass(sb =>
             {
-                int currentDashHeight = Math.Min(dashHeight, 720 - y);
-                if (currentDashHeight > 0)
+                Vector2 titleSize = _displayFont.MeasureString("PONG");
+                float titleX = (1280 - titleSize.X) / 2f;
+
+                GlowRenderer.DrawTextGlow(
+                    sb,
+                    _displayFont,
+                    "PONG",
+                    new Vector2(titleX, 100f),
+                    Theme.AccentP1,
+                    layers: 3
+                );
+            });
+
+            _renderer.ExecuteUIPass(sb =>
+            {
+                // 2. Center dashed line (vertical)
+                const int dashHeight = GameSettings.CENTER_LINE_DASH_HEIGHT;
+                const int gap = GameSettings.CENTER_LINE_GAP;
+                const int lineX = (1280 - 3) / 2;
+                for (int y = 0; y < 720; y += dashHeight + gap)
                 {
-                    _spriteBatch.Draw(_pixel, new Rectangle(lineX, y, 3, currentDashHeight), Theme.DimText * 0.5f);
+                    int currentDashHeight = Math.Min(dashHeight, 720 - y);
+                    if (currentDashHeight > 0)
+                    {
+                        sb.Draw(_pixel, new Rectangle(lineX, y, 3, currentDashHeight), Theme.DimText * 0.5f);
+                    }
                 }
-            }
 
-            // 3. Title "PONG" with glow layers
-            const string titleText = "PONG";
-            Vector2 titleSize = _displayFont.MeasureString(titleText);
-            float titleX = (1280 - titleSize.X) / 2f;
-            const float titleY = 100f;
+                // 3. Title "PONG" (Solid Title - Alpha 100%)
+                const string titleText = "PONG";
+                Vector2 titleSize = _displayFont.MeasureString(titleText);
+                float titleX = (1280 - titleSize.X) / 2f;
+                const float titleY = 100f;
+                sb.DrawString(_displayFont, titleText, new Vector2(titleX, titleY), Theme.AccentP1);
 
-            // Draw 3 glow layers behind: offset each by 0/1/2px, alpha 60/35/15
-            // Offset 2px (Alpha 15%)
-            DrawTitleGlow(_spriteBatch, titleText, titleX, titleY, 2, Theme.AccentP1 * 0.15f);
-            // Offset 1px (Alpha 35%)
-            DrawTitleGlow(_spriteBatch, titleText, titleX, titleY, 1, Theme.AccentP1 * 0.35f);
-            // Offset 0px (Alpha 60%)
-            _spriteBatch.DrawString(_displayFont, titleText, new Vector2(titleX, titleY), Theme.AccentP1 * 0.60f);
+                // 4. Subtitle "MODERN EDITION"
+                const string subtitleText = "MODERN  EDITION";
+                Vector2 subtitleSize = _uiFont.MeasureString(subtitleText);
+                float subtitleX = (1280 - subtitleSize.X) / 2f;
+                const float subtitleY = 185f;
+                sb.DrawString(_uiFont, subtitleText, new Vector2(subtitleX, subtitleY), Theme.UIText * 0.7f);
 
-            // Solid Title (Alpha 100%)
-            _spriteBatch.DrawString(_displayFont, titleText, new Vector2(titleX, titleY), Theme.AccentP1);
+                // 5. Draw _btn1v1 and _btnVsAI
+                _btn1v1?.Draw(sb, _pixel);
+                _btnVsAI?.Draw(sb, _pixel);
 
-            // 4. Subtitle "MODERN EDITION"
-            const string subtitleText = "MODERN  EDITION";
-            Vector2 subtitleSize = _uiFont.MeasureString(subtitleText);
-            float subtitleX = (1280 - subtitleSize.X) / 2f;
-            const float subtitleY = 185f;
-            _spriteBatch.DrawString(_uiFont, subtitleText, new Vector2(subtitleX, subtitleY), Theme.UIText * 0.7f);
-
-            // 5. Draw _btn1v1 and _btnVsAI
-            _btn1v1?.Draw(_spriteBatch, _pixel);
-            _btnVsAI?.Draw(_spriteBatch, _pixel);
-
-            // 6. Footer
-            const string footerText = "W / S     Up / Down   to move      ESC to pause";
-            Vector2 footerSize = _uiFont.MeasureString(footerText);
-            float footerX = (1280 - footerSize.X) / 2f;
-            const float footerY = 720f - 40f;
-            _spriteBatch.DrawString(_uiFont, footerText, new Vector2(footerX, footerY), Theme.DimText);
-
-            _spriteBatch.End();
+                // 6. Footer
+                const string footerText = "W / S     Up / Down   to move      ESC to pause";
+                Vector2 footerSize = _uiFont.MeasureString(footerText);
+                float footerX = (1280 - footerSize.X) / 2f;
+                const float footerY = 720f - 40f;
+                sb.DrawString(_uiFont, footerText, new Vector2(footerX, footerY), Theme.DimText);
+            });
         }
 
         /// <summary>
@@ -161,26 +168,6 @@ namespace PongGame.Scenes
         /// </summary>
         public void OnExit()
         {
-        }
-
-        private void DrawTitleGlow(SpriteBatch spriteBatch, string text, float x, float y, float offset, Color color)
-        {
-            if (_displayFont == null)
-            {
-                return;
-            }
-
-            if (offset == 0)
-            {
-                spriteBatch.DrawString(_displayFont, text, new Vector2(x, y), color);
-            }
-            else
-            {
-                spriteBatch.DrawString(_displayFont, text, new Vector2(x - offset, y), color);
-                spriteBatch.DrawString(_displayFont, text, new Vector2(x + offset, y), color);
-                spriteBatch.DrawString(_displayFont, text, new Vector2(x, y - offset), color);
-                spriteBatch.DrawString(_displayFont, text, new Vector2(x, y + offset), color);
-            }
         }
     }
 }
