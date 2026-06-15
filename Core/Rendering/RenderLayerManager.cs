@@ -27,6 +27,22 @@ namespace PongGame.Core.Rendering
         }
 
         /// <summary>
+        /// Executes a drawing pass with additive blend state and no transformation matrix.
+        /// Used for ambient background effects that should not be affected by screen shake.
+        /// </summary>
+        /// <param name="drawAction">The drawing action to execute within the pass.</param>
+        public void ExecuteBackgroundPass(Action<SpriteBatch> drawAction)
+        {
+            if (drawAction == null) return;
+            _spriteBatch.Begin(
+                blendState: BlendState.Additive,
+                transformMatrix: null
+            );
+            drawAction(_spriteBatch);
+            _spriteBatch.End();
+        }
+
+        /// <summary>
         /// Executes a drawing pass with additive blend state and the world-space transformation matrix.
         /// </summary>
         /// <param name="drawAction">The drawing action to execute within the pass.</param>
