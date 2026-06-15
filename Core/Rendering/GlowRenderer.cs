@@ -8,8 +8,8 @@ namespace PongGame.Core.Rendering
     /// </summary>
     public static class GlowRenderer
     {
-        private static readonly int[] GlowSizes = { 4, 10, 20, 36, 58, 86 };
-        private static readonly float[] GlowAlphas = { 0.70f, 0.35f, 0.18f, 0.09f, 0.04f, 0.02f };
+        private static readonly int[] GlowSizes = [4, 10, 20, 36, 58, 86];
+        private static readonly float[] GlowAlphas = [0.70f, 0.35f, 0.18f, 0.09f, 0.04f, 0.02f];
 
         /// <summary>
         /// Draws an outer neon glow around a rectangle.
@@ -24,7 +24,7 @@ namespace PongGame.Core.Rendering
             for (int i = GlowSizes.Length - 1; i >= 0; i--)
             {
                 int size = GlowSizes[i];
-                Rectangle glowRect = new Rectangle(
+                Rectangle glowRect = new(
                     bounds.X - size,
                     bounds.Y - size,
                     bounds.Width + (size * 2),
