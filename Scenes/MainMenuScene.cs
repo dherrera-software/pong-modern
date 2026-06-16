@@ -363,14 +363,17 @@ namespace PongGame.Scenes
         }
 
         /// <summary>
-        /// Called when the scene is activated.
+        /// Called when the scene is activated. Starts the menu background music with a fade-in.
         /// </summary>
         public void OnEnter()
         {
+            AudioManager.PlayTrack("menu");
         }
 
         /// <summary>
-        /// Called when the scene is deactivated.
+        /// Called when the scene is deactivated. The AudioManager crossfade is driven
+        /// by the next scene's <see cref="AudioManager.PlayTrack"/> call, so no explicit
+        /// stop is required here. However, Stop is safe to call as a safety guard.
         /// </summary>
         public void OnExit()
         {

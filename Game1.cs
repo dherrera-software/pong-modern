@@ -37,6 +37,11 @@ namespace PongGame
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
+            // Initialize audio subsystem and preload all music tracks.
+            AudioManager.Initialize(Content);
+            AudioManager.LoadTrack("menu",     "audio/music/menu_theme");
+            AudioManager.LoadTrack("gameplay", "audio/music/gameplay_theme");
+
             SceneManager.Initialize(Content, GraphicsDevice);
             SceneManager.RegisterScene("menu", new MainMenuScene());
             SceneManager.RegisterScene("game", new GameScene());
@@ -56,6 +61,7 @@ namespace PongGame
             }
 
             InputManager.Update();
+            AudioManager.Update(gameTime);
             SceneManager.Update(gameTime);
             base.Update(gameTime);
         }

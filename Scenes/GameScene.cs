@@ -111,6 +111,7 @@ namespace PongGame.Scenes
 
         /// <summary>
         /// Called when this scene becomes the active scene. Resets scores, positions, and starts countdown.
+        /// Also triggers the gameplay music with a crossfade from whatever was playing before.
         /// </summary>
         public void OnEnter()
         {
@@ -132,10 +133,14 @@ namespace PongGame.Scenes
             _state = GameState.Countdown;
             _stateTimer = 0f;
             _countdownStep = 3;
+
+            // Start gameplay music (crossfades from any currently playing track).
+            AudioManager.PlayTrack("gameplay");
         }
 
         /// <summary>
         /// Called when this scene is deactivated and replaced by another scene.
+        /// Music transition is driven by the next scene's <see cref="AudioManager.PlayTrack"/> call.
         /// </summary>
         public void OnExit()
         {
