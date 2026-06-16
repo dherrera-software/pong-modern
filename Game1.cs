@@ -43,6 +43,13 @@ namespace PongGame
             AudioManager.LoadTrack("menu",     "audio/music/menu_theme");
             AudioManager.LoadTrack("gameplay", "audio/music/gameplay_theme");
 
+            // Load all sound effects
+            AudioManager.LoadSfx("paddle_hit",    "audio/sfx/paddle_hit");
+            AudioManager.LoadSfx("wall_bounce",   "audio/sfx/wall_bounce");
+            AudioManager.LoadSfx("score",         "audio/sfx/score");
+            AudioManager.LoadSfx("button_hover",  "audio/sfx/button_hover");
+            AudioManager.LoadSfx("button_click",  "audio/sfx/button_click");
+
             // Create a temporary pixel for ParticleManager initialization
             Texture2D particlePixel = new Texture2D(GraphicsDevice, 1, 1);
             particlePixel.SetData([Color.White]);

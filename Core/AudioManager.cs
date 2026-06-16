@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Media;
 using Microsoft.Xna.Framework;
@@ -6,17 +7,36 @@ using System.Collections.Generic;
 namespace PongGame.Core
 {
     /// <summary>
-    /// Centralized subsystem for background music playback.
-    /// Handles loading, playing, stopping, looping, volume control,
-    /// and fade-in / fade-out transitions between tracks.
+    /// Centralized subsystem for all audio playback: background music and sound effects.
+    /// Handles loading, caching, playing, stopping, looping, volume control,
+    /// and fade-in / fade-out transitions between music tracks.
     /// </summary>
     /// <remarks>
-    /// Usage pattern:
+    /// <b>Architecture:</b> All audio playback must go through this manager.
+    /// Scenes, UI components, and entities should never call <c>SoundEffect.Play()</c>
+    /// or <c>MediaPlayer.Play()</c> directly.
+    ///
+    /// <b>Volume model:</b>
+    /// <list type="bullet">
+    ///   <item>Effective music volume = <see cref="MasterVolume"/> × <see cref="MusicVolume"/></item>
+    ///   <item>Effective SFX volume   = <see cref="MasterVolume"/> × <see cref="SfxVolume"/></item>
+    /// </list>
+    ///
+    /// <b>Usage pattern:</b>
     /// <list type="number">
     ///   <item>Call <see cref="Initialize"/> once in Game.LoadContent, passing the ContentManager.</item>
-    ///   <item>Preload tracks with <see cref="LoadTrack"/>.</item>
+    ///   <item>Preload tracks with <see cref="LoadTrack"/> and effects with <see cref="LoadSfx"/>.</item>
     ///   <item>Call <see cref="PlayTrack"/> from a scene's OnEnter to start music.</item>
+    ///   <item>Call <see cref="PlaySfx"/> from game logic to fire sound effects.</item>
     ///   <item>Call <see cref="Update"/> every frame so fade transitions are processed.</item>
+    /// </list>
+    ///
+    /// <b>Adding new sound effects:</b>
+    /// <list type="number">
+    ///   <item>Place the <c>.wav</c> file in <c>Content/audio/sfx/</c>.</item>
+    ///   <item>Register it in <c>Content.mgcb</c> with <c>WavImporter</c> + <c>SoundEffectProcessor</c>.</item>
+    ///   <item>Call <c>AudioManager.LoadSfx("key", "audio/sfx/filename")</c> in <c>Game1.LoadContent</c>.</item>
+    ///   <item>Trigger it anywhere with <c>AudioManager.PlaySfx("key")</c>.</item>
     /// </list>
     /// </remarks>
     public static class AudioManager
@@ -24,15 +44,31 @@ namespace PongGame.Core
         // ── Content ──────────────────────────────────────────────────────────
         private static ContentManager? _content;
         private static readonly Dictionary<string, Song> _tracks = [];
+        private static readonly Dictionary<string, SoundEffect> _sfxCache = [];
 
         // ── Playback state ────────────────────────────────────────────────────
         private static string? _currentTrackKey;
         private static string? _pendingTrackKey;   // track to play after fade-out completes
 
-        // ── Volume / fade ─────────────────────────────────────────────────────
-        private static float _masterVolume  = 1.0f;
+        // ── Volume ────────────────────────────────────────────────────────────
+        private static float _masterVolume = 1.0f;
+        private static float _musicVolume  = 0.70f;
+        private static float _sfxVolume    = 1.0f;
         private static float _currentVolume = 0.0f; // actual MediaPlayer volume (animated)
 
+        /// <summary>
+        /// Computes the target music volume: <c>MasterVolume × MusicVolume</c>.
+        /// Used by fade transitions and immediate volume sync.
+        /// </summary>
+        private static float EffectiveMusicVolume => _masterVolume * _musicVolume;
+
+        /// <summary>
+        /// Computes the target SFX volume: <c>MasterVolume × SfxVolume</c>.
+        /// Used by <see cref="PlaySfx"/>.
+        /// </summary>
+        private static float EffectiveSfxVolume => _masterVolume * _sfxVolume;
+
+        // ── Fade ──────────────────────────────────────────────────────────────
         private enum FadeState { Idle, FadingOut, FadingIn }
         private static FadeState _fadeState = FadeState.Idle;
 
@@ -44,8 +80,9 @@ namespace PongGame.Core
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Gets or sets the master volume applied to all music (0.0–1.0).
-        /// Changes take effect immediately unless a fade is in progress.
+        /// Gets or sets the master volume applied to all audio (0.0–1.0).
+        /// Changes take effect immediately for SFX.
+        /// For music, changes take effect immediately unless a fade is in progress.
         /// </summary>
         public static float MasterVolume
         {
@@ -56,15 +93,46 @@ namespace PongGame.Core
                 // If idle (not fading) keep MediaPlayer in sync right away.
                 if (_fadeState == FadeState.Idle)
                 {
-                    MediaPlayer.Volume = _masterVolume;
-                    _currentVolume     = _masterVolume;
+                    float effective = EffectiveMusicVolume;
+                    MediaPlayer.Volume = effective;
+                    _currentVolume     = effective;
                 }
             }
         }
 
         /// <summary>
+        /// Gets or sets the music volume channel (0.0–1.0). Default 0.70.
+        /// The actual playback volume is <c>MasterVolume × MusicVolume</c>.
+        /// </summary>
+        public static float MusicVolume
+        {
+            get => _musicVolume;
+            set
+            {
+                _musicVolume = MathHelper.Clamp(value, 0f, 1f);
+                if (_fadeState == FadeState.Idle)
+                {
+                    float effective = EffectiveMusicVolume;
+                    MediaPlayer.Volume = effective;
+                    _currentVolume     = effective;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the SFX volume channel (0.0–1.0). Default 1.0.
+        /// The actual playback volume is <c>MasterVolume × SfxVolume</c>.
+        /// </summary>
+        public static float SfxVolume
+        {
+            get => _sfxVolume;
+            set => _sfxVolume = MathHelper.Clamp(value, 0f, 1f);
+        }
+
+        /// <summary>
         /// Initializes the AudioManager with the application's ContentManager.
-        /// Must be called before <see cref="LoadTrack"/> or <see cref="PlayTrack"/>.
+        /// Must be called before <see cref="LoadTrack"/>, <see cref="LoadSfx"/>,
+        /// or any playback methods.
         /// </summary>
         /// <param name="content">The game's ContentManager instance.</param>
         public static void Initialize(ContentManager content)
@@ -74,6 +142,8 @@ namespace PongGame.Core
             MediaPlayer.Volume       = 0f;
             _currentVolume           = 0f;
         }
+
+        // ── Music ─────────────────────────────────────────────────────────────
 
         /// <summary>
         /// Preloads a music track from the Content pipeline and registers it under a key.
@@ -136,6 +206,53 @@ namespace PongGame.Core
             _fadeTimer       = 0f;
         }
 
+        // ── SFX ───────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Preloads a sound effect from the Content pipeline and caches it under a key.
+        /// Assets are loaded once and reused for all subsequent <see cref="PlaySfx"/> calls.
+        /// </summary>
+        /// <param name="key">Unique identifier used to reference this effect (e.g., "paddle_hit").</param>
+        /// <param name="assetPath">Content-relative path, e.g., <c>audio/sfx/paddle_hit</c>.</param>
+        public static void LoadSfx(string key, string assetPath)
+        {
+            if (_content == null)
+            {
+                return;
+            }
+
+            if (!_sfxCache.ContainsKey(key))
+            {
+                _sfxCache[key] = _content.Load<SoundEffect>(assetPath);
+            }
+        }
+
+        /// <summary>
+        /// Plays the sound effect registered under <paramref name="key"/>.
+        /// Uses fire-and-forget playback, supporting multiple simultaneous instances
+        /// with no allocations during playback.
+        /// </summary>
+        /// <param name="key">The key of the sound effect to play.</param>
+        public static void PlaySfx(string key)
+        {
+            // Guard: effective volume is zero — skip playback entirely.
+            float volume = EffectiveSfxVolume;
+            if (volume <= 0f)
+            {
+                return;
+            }
+
+            // Guard: key not found — fail silently (defensive).
+            if (!_sfxCache.TryGetValue(key, out SoundEffect? sfx))
+            {
+                return;
+            }
+
+            sfx.Play(volume, 0f, 0f);
+        }
+
+        // ── Update ────────────────────────────────────────────────────────────
+
         /// <summary>
         /// Must be called every frame from Game.Update (or SceneManager.Update) so that
         /// fade transitions are processed correctly.
@@ -152,10 +269,12 @@ namespace PongGame.Core
             _fadeTimer += dt;
             float t    = MathHelper.Clamp(_fadeTimer / FADE_DURATION, 0f, 1f);
 
+            float targetVolume = EffectiveMusicVolume;
+
             switch (_fadeState)
             {
                 case FadeState.FadingOut:
-                    _currentVolume     = MathHelper.Lerp(_masterVolume, 0f, t);
+                    _currentVolume     = MathHelper.Lerp(targetVolume, 0f, t);
                     MediaPlayer.Volume = _currentVolume;
 
                     if (t >= 1f)
@@ -177,13 +296,13 @@ namespace PongGame.Core
                     break;
 
                 case FadeState.FadingIn:
-                    _currentVolume     = MathHelper.Lerp(0f, _masterVolume, t);
+                    _currentVolume     = MathHelper.Lerp(0f, targetVolume, t);
                     MediaPlayer.Volume = _currentVolume;
 
                     if (t >= 1f)
                     {
-                        MediaPlayer.Volume = _masterVolume;
-                        _currentVolume     = _masterVolume;
+                        MediaPlayer.Volume = targetVolume;
+                        _currentVolume     = targetVolume;
                         _fadeState         = FadeState.Idle;
                         _fadeTimer         = 0f;
                     }

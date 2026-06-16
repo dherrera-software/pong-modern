@@ -94,6 +94,7 @@ namespace PongGame.Entities
                 
                 // Top Wall Bounce Effect: emit downwards (90 degrees / MathF.PI / 2)
                 ParticleManager.Emit(ParticleEmitter.WallBounce, Position, MathF.PI / 2f);
+                AudioManager.PlaySfx("wall_bounce");
             }
             else if (Position.Y + halfSize >= GameSettings.SCREEN_HEIGHT)
             {
@@ -103,6 +104,7 @@ namespace PongGame.Entities
 
                 // Bottom Wall Bounce Effect: emit upwards (-90 degrees / -MathF.PI / 2)
                 ParticleManager.Emit(ParticleEmitter.WallBounce, Position, -MathF.PI / 2f);
+                AudioManager.PlaySfx("wall_bounce");
             }
 
             // Paddle collision
@@ -166,6 +168,7 @@ namespace PongGame.Entities
 
             // Emit particles matching the paddle color
             ParticleManager.Emit(ParticleEmitter.PaddleHit, Position, emitAngle, paddle.AccentColor);
+            AudioManager.PlaySfx("paddle_hit");
         }
 
         /// <summary>
