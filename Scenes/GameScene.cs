@@ -45,6 +45,21 @@ namespace PongGame.Scenes
         private Button? _btnPlayAgain;
         private Button? _btnMenu;
 
+        // ── Pause and Settings state ──────────────────────────────────────────
+        private bool _isPaused;
+        private bool _inSettings;
+
+        // Pause Menu UI elements
+        private Button? _btnResume;
+        private Button? _btnSettings;
+        private Button? _btnMainMenu;
+
+        // Settings Screen UI elements
+        private Slider? _sliderMaster;
+        private Slider? _sliderMusic;
+        private Slider? _sliderSfx;
+        private Button? _btnSettingsBack;
+
         /// <summary>
         /// Initializes the scene. No specific state to reset for initial setup.
         /// </summary>
@@ -108,6 +123,78 @@ namespace PongGame.Scenes
                 Theme.AccentP2,
                 Color.White
             );
+
+            // ── Pause Menu UI ────────────────────────────────────────────────
+            const int btnPauseWidth = 260;
+            const int btnPauseHeight = 56;
+            const int btnPauseX = (GameSettings.SCREEN_WIDTH - btnPauseWidth) / 2;
+
+            _btnResume = new Button(
+                new Rectangle(btnPauseX, 280, btnPauseWidth, btnPauseHeight),
+                "RESUME",
+                _uiFont,
+                Theme.AccentP1,
+                Color.White
+            );
+
+            _btnSettings = new Button(
+                new Rectangle(btnPauseX, 350, btnPauseWidth, btnPauseHeight),
+                "SETTINGS",
+                _uiFont,
+                Theme.AccentP2,
+                Color.White
+            );
+
+            _btnMainMenu = new Button(
+                new Rectangle(btnPauseX, 420, btnPauseWidth, btnPauseHeight),
+                "MAIN MENU",
+                _uiFont,
+                Theme.AccentP1,
+                Color.White
+            );
+
+            // ── Settings UI ──────────────────────────────────────────────────
+            const int sliderWidth = 400;
+            const int sliderHeight = 20;
+            const int sliderX = (GameSettings.SCREEN_WIDTH - sliderWidth) / 2;
+
+            _sliderMaster = new Slider(
+                new Rectangle(sliderX, 280, sliderWidth, sliderHeight),
+                "MASTER VOLUME",
+                _uiFont,
+                Theme.AccentP1,
+                AudioManager.MasterVolume
+            );
+            _sliderMaster.OnValueChanged += (val) => AudioManager.MasterVolume = val;
+
+            _sliderMusic = new Slider(
+                new Rectangle(sliderX, 370, sliderWidth, sliderHeight),
+                "MUSIC VOLUME",
+                _uiFont,
+                Theme.AccentP2,
+                AudioManager.MusicVolume
+            );
+            _sliderMusic.OnValueChanged += (val) => AudioManager.MusicVolume = val;
+
+            _sliderSfx = new Slider(
+                new Rectangle(sliderX, 460, sliderWidth, sliderHeight),
+                "SFX VOLUME",
+                _uiFont,
+                Theme.AccentP1,
+                AudioManager.SfxVolume
+            );
+            _sliderSfx.OnValueChanged += (val) => AudioManager.SfxVolume = val;
+
+            const int btnBackWidth = 200;
+            const int btnBackHeight = 50;
+            const int btnBackX = (GameSettings.SCREEN_WIDTH - btnBackWidth) / 2;
+            _btnSettingsBack = new Button(
+                new Rectangle(btnBackX, 550, btnBackWidth, btnBackHeight),
+                "BACK",
+                _uiFont,
+                Theme.AccentP2,
+                Color.White
+            );
         }
 
         /// <summary>
@@ -134,6 +221,9 @@ namespace PongGame.Scenes
             _state = GameState.Countdown;
             _stateTimer = 0f;
             _countdownStep = 3;
+
+            _isPaused = false;
+            _inSettings = false;
 
             // Clear any lingering particles from previous gameplay session
             ParticleManager.Clear();
@@ -163,21 +253,67 @@ namespace PongGame.Scenes
             }
 
             if (_leftPaddle == null || _rightPaddle == null || _ball == null ||
-                _btnPlayAgain == null || _btnMenu == null)
+                _btnPlayAgain == null || _btnMenu == null ||
+                _btnResume == null || _btnSettings == null || _btnMainMenu == null ||
+                _sliderMaster == null || _sliderMusic == null || _sliderSfx == null ||
+                _btnSettingsBack == null)
             {
                 return;
+            }
+
+            // Check pause toggle
+            if (InputManager.IsPausePressed())
+            {
+                _isPaused = !_isPaused;
+                if (_isPaused)
+                {
+                    _inSettings = false;
+                    _sliderMaster.Value = AudioManager.MasterVolume;
+                    _sliderMusic.Value = AudioManager.MusicVolume;
+                    _sliderSfx.Value = AudioManager.SfxVolume;
+                }
+            }
+
+            if (_isPaused)
+            {
+                if (_inSettings)
+                {
+                    _sliderMaster.Update(gameTime);
+                    _sliderMusic.Update(gameTime);
+                    _sliderSfx.Update(gameTime);
+                    _btnSettingsBack.Update(gameTime);
+
+                    if (_btnSettingsBack.WasClicked)
+                    {
+                        _inSettings = false;
+                    }
+                }
+                else
+                {
+                    _btnResume.Update(gameTime);
+                    _btnSettings.Update(gameTime);
+                    _btnMainMenu.Update(gameTime);
+
+                    if (_btnResume.WasClicked)
+                    {
+                        _isPaused = false;
+                    }
+                    if (_btnSettings.WasClicked)
+                    {
+                        _inSettings = true;
+                    }
+                    if (_btnMainMenu.WasClicked)
+                    {
+                        TransitionManager.StartTransition("menu");
+                    }
+                }
+                return; // Freeze gameplay simulation
             }
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             // Update particles
             ParticleManager.Update(gameTime);
-
-            // Check pause (no-op for now, pause scene to be added later)
-            if (InputManager.IsPausePressed())
-            {
-                // Reserved for future pause scene
-            }
 
             switch (_state)
             {
@@ -303,7 +439,10 @@ namespace PongGame.Scenes
         {
             if (_spriteBatch == null || _pixel == null || _displayFont == null || _scoreFont == null || _uiFont == null ||
                 _leftPaddle == null || _rightPaddle == null || _ball == null ||
-                _btnPlayAgain == null || _btnMenu == null || _renderer == null)
+                _btnPlayAgain == null || _btnMenu == null || _renderer == null ||
+                _btnResume == null || _btnSettings == null || _btnMainMenu == null ||
+                _sliderMaster == null || _sliderMusic == null || _sliderSfx == null ||
+                _btnSettingsBack == null)
             {
                 return;
             }
@@ -317,6 +456,22 @@ namespace PongGame.Scenes
                 _rightPaddle.DrawGlow(sb, _pixel);
                 _ball.DrawGlow(sb, _pixel);
                 ParticleManager.DrawGlow(sb);
+
+                if (_isPaused)
+                {
+                    if (_inSettings)
+                    {
+                        _sliderMaster.DrawGlow(sb, _pixel);
+                        _sliderMusic.DrawGlow(sb, _pixel);
+                        _sliderSfx.DrawGlow(sb, _pixel);
+                    }
+                    else
+                    {
+                        Vector2 titleSize = _displayFont.MeasureString("GAME PAUSED");
+                        float titleX = (GameSettings.SCREEN_WIDTH - titleSize.X) / 2f;
+                        GlowRenderer.DrawTextGlow(sb, _displayFont, "GAME PAUSED", new Vector2(titleX, 160f), Theme.AccentP1, layers: 3);
+                    }
+                }
             });
 
             _renderer.ExecuteGameplayPass(sb =>
@@ -337,6 +492,40 @@ namespace PongGame.Scenes
                     case GameState.Countdown: DrawCountdownOverlay(); break;
                     case GameState.Scored:    DrawScoredOverlay();    break;
                     case GameState.GameOver:  DrawGameOverOverlay();  break;
+                }
+
+                if (_isPaused)
+                {
+                    // Semi-transparent dark overlay
+                    sb.Draw(_pixel, new Rectangle(0, 0, GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT), new Color(0, 0, 0, 180));
+
+                    if (_inSettings)
+                    {
+                        // Header "AUDIO SETTINGS"
+                        Vector2 headerSize = _displayFont.MeasureString("AUDIO SETTINGS");
+                        float headerX = (GameSettings.SCREEN_WIDTH - headerSize.X) / 2f;
+                        sb.DrawString(_displayFont, "AUDIO SETTINGS", new Vector2(headerX, 160f), Theme.AccentP2);
+
+                        // Draw Sliders
+                        _sliderMaster.Draw(sb, _pixel);
+                        _sliderMusic.Draw(sb, _pixel);
+                        _sliderSfx.Draw(sb, _pixel);
+
+                        // Draw Back Button
+                        _btnSettingsBack.Draw(sb, _pixel);
+                    }
+                    else
+                    {
+                        // Header "GAME PAUSED"
+                        Vector2 headerSize = _displayFont.MeasureString("GAME PAUSED");
+                        float headerX = (GameSettings.SCREEN_WIDTH - headerSize.X) / 2f;
+                        sb.DrawString(_displayFont, "GAME PAUSED", new Vector2(headerX, 160f), Theme.AccentP1);
+
+                        // Draw Buttons
+                        _btnResume.Draw(sb, _pixel);
+                        _btnSettings.Draw(sb, _pixel);
+                        _btnMainMenu.Draw(sb, _pixel);
+                    }
                 }
             });
         }
