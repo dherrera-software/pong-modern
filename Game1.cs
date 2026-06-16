@@ -43,6 +43,7 @@ namespace PongGame
             AudioManager.LoadTrack("gameplay", "audio/music/gameplay_theme");
 
             SceneManager.Initialize(Content, GraphicsDevice);
+            TransitionManager.Initialize(GraphicsDevice);
             SceneManager.RegisterScene("menu", new MainMenuScene());
             SceneManager.RegisterScene("game", new GameScene());
             SceneManager.ChangeScene("menu");
@@ -62,6 +63,7 @@ namespace PongGame
 
             InputManager.Update();
             AudioManager.Update(gameTime);
+            TransitionManager.Update(gameTime);
             SceneManager.Update(gameTime);
             base.Update(gameTime);
         }
@@ -74,6 +76,7 @@ namespace PongGame
         {
             GraphicsDevice.Clear(Theme.Background);
             SceneManager.Draw(_spriteBatch);
+            TransitionManager.Draw(_spriteBatch);
             base.Draw(gameTime);
         }
     }

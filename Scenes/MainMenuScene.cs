@@ -149,6 +149,12 @@ namespace PongGame.Scenes
 
             // Advance background and all independent timers
             _background?.Update(gameTime);
+
+            if (TransitionManager.IsTransitioning)
+            {
+                return;
+            }
+
             _titleTime    += dt;
             _subtitleTime += dt;
             _lineTime     += dt;
@@ -186,7 +192,7 @@ namespace PongGame.Scenes
 
             if (_btn1v1?.WasClicked is true)
             {
-                SceneManager.ChangeScene("game");
+                TransitionManager.StartTransition("game");
             }
         }
 
