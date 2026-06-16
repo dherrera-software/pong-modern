@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using PongGame.Core;
+using PongGame.Core.Particles;
 using PongGame.Core.Rendering;
 using PongGame.Entities;
 using PongGame.UI;
@@ -134,6 +135,9 @@ namespace PongGame.Scenes
             _stateTimer = 0f;
             _countdownStep = 3;
 
+            // Clear any lingering particles from previous gameplay session
+            ParticleManager.Clear();
+
             // Start gameplay music (crossfades from any currently playing track).
             AudioManager.PlayTrack("gameplay");
         }
@@ -144,6 +148,7 @@ namespace PongGame.Scenes
         /// </summary>
         public void OnExit()
         {
+            ParticleManager.Clear();
         }
 
         /// <summary>
@@ -164,6 +169,9 @@ namespace PongGame.Scenes
             }
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            // Update particles
+            ParticleManager.Update(gameTime);
 
             // Check pause (no-op for now, pause scene to be added later)
             if (InputManager.IsPausePressed())
@@ -234,6 +242,10 @@ namespace PongGame.Scenes
             {
                 _lastScorer = scorer;
 
+                // Color score burst based on which player scored
+                Color burstColor = scorer == 1 ? Theme.AccentP1 : Theme.AccentP2;
+                ParticleManager.Emit(ParticleEmitter.Score, _ball.Position, 0f, burstColor);
+
                 if (scorer == 1)
                 {
                     _leftPaddle.Score++;
@@ -303,6 +315,7 @@ namespace PongGame.Scenes
                 _leftPaddle.DrawGlow(sb, _pixel);
                 _rightPaddle.DrawGlow(sb, _pixel);
                 _ball.DrawGlow(sb, _pixel);
+                ParticleManager.DrawGlow(sb);
             });
 
             _renderer.ExecuteGameplayPass(sb =>
@@ -311,6 +324,7 @@ namespace PongGame.Scenes
                 _leftPaddle.Draw(sb, _pixel);
                 _rightPaddle.Draw(sb, _pixel);
                 _ball.Draw(sb, _pixel);
+                ParticleManager.Draw(sb);
             });
 
             _renderer.ExecuteUIPass(sb =>
