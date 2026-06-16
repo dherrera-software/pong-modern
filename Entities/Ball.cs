@@ -15,16 +15,12 @@ namespace PongGame.Entities
         public Vector2 Velocity { get; private set; }
         public Rectangle Bounds { get; private set; }
         public bool IsActive { get; private set; }
-        public Vector2[] Trail { get; }
+        public BallTrail Trail { get; }
 
         public Ball(Vector2 center)
         {
             Position = center;
-            Trail = new Vector2[GameSettings.TRAIL_LENGTH];
-            for (int i = 0; i < Trail.Length; i++)
-            {
-                Trail[i] = center;
-            }
+            Trail = new BallTrail();
             IsActive = false;
             UpdateBounds();
         }
@@ -54,11 +50,8 @@ namespace PongGame.Entities
 
             Velocity = direction * GameSettings.BALL_INITIAL_SPEED;
 
-            // Clear trail to center
-            for (int i = 0; i < Trail.Length; i++)
-            {
-                Trail[i] = center;
-            }
+            // Clear trail
+            Trail.Reset();
 
             IsActive = true;
         }
@@ -73,12 +66,8 @@ namespace PongGame.Entities
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            // Shift trail
-            for (int i = Trail.Length - 1; i > 0; i--)
-            {
-                Trail[i] = Trail[i - 1];
-            }
-            Trail[0] = Position;
+            // Update trail
+            Trail.Update(gameTime, Position, IsActive);
 
             // Move
             Position += Velocity * deltaTime;
@@ -183,19 +172,8 @@ namespace PongGame.Entities
                 return;
             }
 
-            // Trail: draw each Trail[i] as a shrinking, fading rectangle
-            for (int i = Trail.Length - 1; i >= 0; i--)
-            {
-                int size = Math.Max(2, GameSettings.BALL_SIZE - (i * 2));
-                int alpha = Math.Max(0, 180 - (i * 28));
-                Rectangle trailRect = new(
-                    (int)MathF.Round(Trail[i].X - (size / 2f)),
-                    (int)MathF.Round(Trail[i].Y - (size / 2f)),
-                    size,
-                    size
-                );
-                spriteBatch.Draw(pixel, trailRect, Theme.BallColor * (alpha / 255f));
-            }
+            // Draw trail behind the ball
+            Trail.Draw(spriteBatch, pixel, Theme.BallColor, GameSettings.BALL_SIZE);
 
             // Glow: GLOW_LAYERS concentric rectangles expanding around Position
             int[] glowAlphas = [90, 50, 20];
@@ -234,6 +212,7 @@ namespace PongGame.Entities
             {
                 return;
             }
+            Trail.DrawGlow(spriteBatch, pixel, Theme.BallColor, GameSettings.BALL_SIZE);
             GlowRenderer.DrawRectGlow(spriteBatch, pixel, Bounds, Theme.BallColor);
         }
     }

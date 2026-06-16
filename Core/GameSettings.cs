@@ -89,6 +89,36 @@ namespace PongGame.Core
         #region Visual Constants
 
         /// <summary>
+        /// The maximum number of points tracked for the advanced ball trail effect.
+        /// </summary>
+        public const int TRAIL_MAX_POINTS = 16;
+
+        /// <summary>
+        /// The time interval in seconds between trail position samples.
+        /// </summary>
+        public const float TRAIL_SAMPLE_INTERVAL = 0.02f;
+
+        /// <summary>
+        /// The lifetime of each trail point in seconds.
+        /// </summary>
+        public const float TRAIL_POINT_LIFETIME = 0.35f;
+
+        /// <summary>
+        /// The base opacity (alpha) of the trail when it is first created.
+        /// </summary>
+        public const float TRAIL_BASE_OPACITY = 0.65f;
+
+        /// <summary>
+        /// The size decay factor for the trail points.
+        /// </summary>
+        public const float TRAIL_SIZE_DECAY = 0.75f;
+
+        /// <summary>
+        /// The multiplier for the trail glow intensity.
+        /// </summary>
+        public const float TRAIL_GLOW_INTENSITY = 0.3f;
+
+        /// <summary>
         /// The number of ghost positions tracked for the ball trail effect.
         /// </summary>
         public const int TRAIL_LENGTH = 6;
