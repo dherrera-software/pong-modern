@@ -51,9 +51,9 @@ namespace PongGame.Core
         private static string? _pendingTrackKey;   // track to play after fade-out completes
 
         // ── Volume ────────────────────────────────────────────────────────────
-        private static float _masterVolume = 1.0f;
-        private static float _musicVolume  = 0.70f;
-        private static float _sfxVolume    = 1.0f;
+        private static float _masterVolume = 0.50f;
+        private static float _musicVolume  = 0.40f;
+        private static float _sfxVolume    = 0.60f;
         private static float _currentVolume = 0.0f; // actual MediaPlayer volume (animated)
 
         /// <summary>
