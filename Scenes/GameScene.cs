@@ -152,6 +152,11 @@ namespace PongGame.Scenes
         /// <param name="gameTime">Provides snapshot of timing values.</param>
         public void Update(GameTime gameTime)
         {
+            if (TransitionManager.IsTransitioning)
+            {
+                return;
+            }
+
             if (_leftPaddle == null || _rightPaddle == null || _ball == null ||
                 _btnPlayAgain == null || _btnMenu == null)
             {
@@ -273,7 +278,7 @@ namespace PongGame.Scenes
 
             if (_btnMenu.WasClicked)
             {
-                SceneManager.ChangeScene("menu");
+                TransitionManager.StartTransition("menu");
             }
         }
 
