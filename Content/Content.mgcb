@@ -23,3 +23,11 @@
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /build:Fonts/ScoreFont.spritefont
+
+/importer:WavImporter
+/processor:SongProcessor
+/build:audio/music/menu_theme.wav
+
+/importer:WavImporter
+/processor:SongProcessor
+/build:audio/music/gameplay_theme.wav
