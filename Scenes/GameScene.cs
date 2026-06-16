@@ -245,6 +245,7 @@ namespace PongGame.Scenes
                 // Color score burst based on which player scored
                 Color burstColor = scorer == 1 ? Theme.AccentP1 : Theme.AccentP2;
                 ParticleManager.Emit(ParticleEmitter.Score, _ball.Position, 0f, burstColor);
+                AudioManager.PlaySfx("score");
 
                 if (scorer == 1)
                 {

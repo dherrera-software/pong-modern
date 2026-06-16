@@ -8,6 +8,7 @@ namespace PongGame.UI
 {
     /// <summary>
     /// Represents an interactive screen button supporting mouse and touch inputs.
+    /// Plays <c>button_hover</c> SFX on hover-enter and <c>button_click</c> SFX on activation.
     /// </summary>
     public class Button(Rectangle bounds, string label, SpriteFont font, Color normalColor, Color hoverColor)
     {
@@ -16,6 +17,7 @@ namespace PongGame.UI
         private readonly Color _normalColor = normalColor;
         private readonly Color _hoverColor = hoverColor;
         private bool _isHovered;
+        private bool _wasHovered;
         private MouseState _previousMouseState;
         private MouseState _currentMouseState;
 
@@ -36,6 +38,7 @@ namespace PongGame.UI
 
         /// <summary>
         /// Updates the button's input state, tracking mouse and touch gestures.
+        /// Plays hover and click sound effects through AudioManager.
         /// </summary>
         /// <param name="gameTime">Provides snapshot of timing values.</param>
         public void Update(GameTime gameTime)
@@ -51,6 +54,7 @@ namespace PongGame.UI
             _previousMouseState = _currentMouseState;
             _currentMouseState = Mouse.GetState();
 
+            _wasHovered = _isHovered;
             _isHovered = false;
 
             // PC check
@@ -82,6 +86,19 @@ namespace PongGame.UI
                         WasClicked = true;
                     }
                 }
+            }
+
+            // ── Sound effects ─────────────────────────────────────────────────
+            // Hover: play only on the frame the cursor enters the button area.
+            if (_isHovered && !_wasHovered)
+            {
+                AudioManager.PlaySfx("button_hover");
+            }
+
+            // Click: play once per activation.
+            if (WasClicked)
+            {
+                AudioManager.PlaySfx("button_click");
             }
         }
 
