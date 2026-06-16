@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using PongGame.Core;
+using PongGame.Core.Particles;
 using PongGame.Core.Rendering;
 
 namespace PongGame.Entities
@@ -90,12 +91,18 @@ namespace PongGame.Entities
                 Velocity = new Vector2(Velocity.X, MathF.Abs(Velocity.Y));
                 Position = new Vector2(Position.X, halfSize);
                 UpdateBounds();
+                
+                // Top Wall Bounce Effect: emit downwards (90 degrees / MathF.PI / 2)
+                ParticleManager.Emit(ParticleEmitter.WallBounce, Position, MathF.PI / 2f);
             }
             else if (Position.Y + halfSize >= GameSettings.SCREEN_HEIGHT)
             {
                 Velocity = new Vector2(Velocity.X, -MathF.Abs(Velocity.Y));
                 Position = new Vector2(Position.X, GameSettings.SCREEN_HEIGHT - halfSize);
                 UpdateBounds();
+
+                // Bottom Wall Bounce Effect: emit upwards (-90 degrees / -MathF.PI / 2)
+                ParticleManager.Emit(ParticleEmitter.WallBounce, Position, -MathF.PI / 2f);
             }
 
             // Paddle collision
@@ -125,17 +132,20 @@ namespace PongGame.Entities
         {
             // Flip Velocity.X depending on the paddle side
             bool isLeftPaddle = paddle.Bounds.X < GameSettings.SCREEN_WIDTH / 2f;
+            float emitAngle;
             if (isLeftPaddle)
             {
                 Velocity = new Vector2(MathF.Abs(Velocity.X), Velocity.Y);
                 // Adjust position to avoid clipping
                 Position = new Vector2(paddle.Bounds.Right + (GameSettings.BALL_SIZE / 2f), Position.Y);
+                emitAngle = 0f; // Emit to the right (away from paddle)
             }
             else
             {
                 Velocity = new Vector2(-MathF.Abs(Velocity.X), Velocity.Y);
                 // Adjust position to avoid clipping
                 Position = new Vector2(paddle.Bounds.Left - (GameSettings.BALL_SIZE / 2f), Position.Y);
+                emitAngle = MathF.PI; // Emit to the left (away from paddle)
             }
 
             // Angle variation
@@ -153,6 +163,9 @@ namespace PongGame.Entities
             }
 
             UpdateBounds();
+
+            // Emit particles matching the paddle color
+            ParticleManager.Emit(ParticleEmitter.PaddleHit, Position, emitAngle, paddle.AccentColor);
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using PongGame.Core;
+using PongGame.Core.Particles;
 using PongGame.Scenes;
 
 namespace PongGame
@@ -41,6 +42,11 @@ namespace PongGame
             AudioManager.Initialize(Content);
             AudioManager.LoadTrack("menu",     "audio/music/menu_theme");
             AudioManager.LoadTrack("gameplay", "audio/music/gameplay_theme");
+
+            // Create a temporary pixel for ParticleManager initialization
+            Texture2D particlePixel = new Texture2D(GraphicsDevice, 1, 1);
+            particlePixel.SetData([Color.White]);
+            ParticleManager.Initialize(particlePixel);
 
             SceneManager.Initialize(Content, GraphicsDevice);
             TransitionManager.Initialize(GraphicsDevice);
