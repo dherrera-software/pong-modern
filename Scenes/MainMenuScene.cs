@@ -313,17 +313,65 @@ namespace PongGame.Scenes
         {
             float floatOff = ButtonGroupFloatOffset;
 
+            // Helper to draw a bordered rectangle
+            void DrawBorderedRect(Rectangle rect, Color borderColor, int borderThickness)
+            {
+                // Top
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y, rect.Width, borderThickness), borderColor);
+                // Bottom
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + rect.Height - borderThickness, rect.Width, borderThickness), borderColor);
+                // Left
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                // Right
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X + rect.Width - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+            }
+
             // ── Draw disabled VS AI button (no animation) ────────────────────
             if (_btnVsAI != null)
             {
                 Rectangle b = _btnVsAI.Bounds;
                 Rectangle displaced = new(b.X, (int)(b.Y + floatOff), b.Width, b.Height);
-                _spriteBatch!.Draw(_pixel, displaced, Theme.DimText * 0.3f);
-                Vector2 textSize = _uiFont!.MeasureString("VS IA  [PROXIMAMENTE]");
+                
+                // No background fill, only 1px border with Theme.DimText * 0.3f
+                DrawBorderedRect(displaced, Theme.DimText * 0.3f, 1);
+
+                // Label principal: solo "VS IA", centrado, color Theme.UIText * 0.35f
+                const string mainLabel = "VS IA";
+                Vector2 textSize = _uiFont!.MeasureString(mainLabel);
                 Vector2 textPos  = new(
                     displaced.X + ((displaced.Width  - textSize.X) / 2f),
                     displaced.Y + ((displaced.Height - textSize.Y) / 2f));
-                _spriteBatch.DrawString(_uiFont, "VS IA  [PROXIMAMENTE]", textPos, Theme.UIText * 0.5f);
+                _spriteBatch!.DrawString(_uiFont, mainLabel, textPos, Theme.UIText * 0.35f);
+
+                // Badge "PRÓXIMAMENTE"
+                const string badgeText = "PROXIMAMENTE";
+                const float badgeScale = 0.6f;
+                Vector2 originalBadgeSize = _uiFont.MeasureString(badgeText);
+                Vector2 badgeSize = originalBadgeSize * badgeScale;
+                
+                // Small rectangle background padding
+                float badgePaddingX = 6f;
+                float badgePaddingY = 3f;
+                float badgeW = badgeSize.X + badgePaddingX * 2f;
+                float badgeH = badgeSize.Y + badgePaddingY * 2f;
+
+                // Position badge at top-right corner of the button
+                float badgeX = displaced.X + displaced.Width - badgeW / 2f;
+                float badgeY = displaced.Y - badgeH / 2f;
+                Rectangle badgeRect = new Rectangle((int)badgeX, (int)badgeY, (int)badgeW, (int)badgeH);
+
+                // Draw badge background
+                _spriteBatch!.Draw(_pixel!, badgeRect, Theme.DimText * 0.15f);
+
+                // Draw badge border
+                DrawBorderedRect(badgeRect, Theme.DimText * 0.25f, 1);
+
+                // Draw badge text centered inside the badge rect
+                Vector2 badgeTextPos = new Vector2(
+                    badgeRect.X + (badgeRect.Width - badgeSize.X) / 2f,
+                    badgeRect.Y + (badgeRect.Height - badgeSize.Y) / 2f
+                );
+                _spriteBatch!.DrawString(_uiFont, badgeText, badgeTextPos, Theme.DimText, 0f, Vector2.Zero, badgeScale, SpriteEffects.None, 0f);
             }
 
             // ── Draw 1v1 button with scale + float ───────────────────────────
@@ -339,18 +387,42 @@ namespace PongGame.Scenes
                     (int)(center.Y - (scaledH * 0.5f)),
                     scaledW, scaledH);
 
-                // Interpolate background color toward brighter when hovered
                 float hoverT    = (scale - BTN_SCALE_NORMAL) / (BTN_SCALE_HOVER - BTN_SCALE_NORMAL);
-                Color bgColor   = Color.Lerp(Theme.AccentP1, Color.White, hoverT * 0.25f);
-                _spriteBatch!.Draw(_pixel, dest, bgColor);
 
-                // Draw label centered in the scaled rect
+                // Draw background only on hover with Theme.AccentP1 * 0.12f * hoverT
+                if (hoverT > 0f)
+                {
+                    _spriteBatch!.Draw(_pixel!, dest, Theme.AccentP1 * (0.12f * hoverT));
+                }
+
+                // Draw 4-line border of 1-2px (using 2px) using Theme.AccentP1
+                DrawBorderedRect(dest, Theme.AccentP1, 2);
+
+                // Draw label centered in the scaled rect using Theme.AccentP1
                 const string label = "1 VS 1";
                 Vector2 textSize   = _uiFont!.MeasureString(label);
                 Vector2 textPos    = new(
                     dest.X + ((dest.Width  - textSize.X) / 2f),
                     dest.Y + ((dest.Height - textSize.Y) / 2f));
-                _spriteBatch.DrawString(_uiFont, label, textPos, Theme.Background);
+                _spriteBatch!.DrawString(_uiFont, label, textPos, Theme.AccentP1);
+
+                // Agregar un triángulo/flecha "▶" a la izquierda del label, visible solo en hover
+                if (_btnScale[0] > BTN_SCALE_NORMAL + 0.001f)
+                {
+                    // Draw custom triangle to the left of the label
+                    float arrowW = 5f;
+                    float arrowH = 8f;
+                    float arrowX = textPos.X - arrowW - 8f;
+                    float arrowY = dest.Y + (dest.Height - arrowH) / 2f;
+                    
+                    for (int col = 0; col < (int)arrowW; col++)
+                    {
+                        int sliceH = (int)arrowH - (col * 2);
+                        if (sliceH <= 0) break;
+                        int sliceY = (int)arrowY + col;
+                        _spriteBatch!.Draw(_pixel!, new Rectangle((int)arrowX + col, sliceY, 1, sliceH), Theme.AccentP1);
+                    }
+                }
             }
         }
 
@@ -359,13 +431,126 @@ namespace PongGame.Scenes
         /// </summary>
         private void DrawFooter()
         {
-            const string footerText = "W / S     Up / Down   to move      ESC to pause";
-            Vector2 footerSize = _uiFont!.MeasureString(footerText);
-            float footerX = (GameSettings.SCREEN_WIDTH - footerSize.X) / 2f;
+            float alpha = FooterAlpha;
+            Color chipBorderColor = Theme.DimText * 0.4f * alpha;
+            Color textColor = Theme.DimText * alpha;
+            Color separatorColor = Theme.DimText * 0.2f * alpha;
+
+            float paddingX = 6f;
+            float paddingY = 3f;
+            float keySpacing = 4f;
+            float labelSpacing = 6f;
+            float groupSpacing = 16f;
+            float dotSize = 3f;
+
+            string labelMover = "mover";
+            string labelPausa = "pausa";
+
+            float fontHeight = _uiFont!.MeasureString("W").Y;
+            float chipHeight = fontHeight + paddingY * 2f;
             const float footerY = GameSettings.SCREEN_HEIGHT - 40f;
-            _spriteBatch!.DrawString(_uiFont, footerText,
-                new Vector2(footerX, footerY),
-                Theme.DimText * FooterAlpha);
+            float centerY = footerY + fontHeight / 2f;
+
+            // Measure widths
+            float wW = _uiFont.MeasureString("W").X + paddingX * 2f;
+            float wS = _uiFont.MeasureString("S").X + paddingX * 2f;
+            float wMover1 = _uiFont.MeasureString(labelMover).X;
+
+            float wUp = _uiFont.MeasureString("^").X + paddingX * 2f;
+            float wDown = _uiFont.MeasureString("v").X + paddingX * 2f;
+            float wMover2 = _uiFont.MeasureString(labelMover).X;
+
+            float wEsc = _uiFont.MeasureString("ESC").X + paddingX * 2f;
+            float wPausa = _uiFont.MeasureString(labelPausa).X;
+
+            float totalWidth = 
+                wW + keySpacing + wS + labelSpacing + dotSize + labelSpacing + wMover1 +
+                groupSpacing + dotSize + groupSpacing +
+                wUp + keySpacing + wDown + labelSpacing + dotSize + labelSpacing + wMover2 +
+                groupSpacing + dotSize + groupSpacing +
+                wEsc + labelSpacing + dotSize + labelSpacing + wPausa;
+
+            float cx = (GameSettings.SCREEN_WIDTH - totalWidth) / 2f;
+
+            void DrawBorderedRect(Rectangle rect, Color borderColor, int borderThickness)
+            {
+                // Top
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y, rect.Width, borderThickness), borderColor);
+                // Bottom
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + rect.Height - borderThickness, rect.Width, borderThickness), borderColor);
+                // Left
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                // Right
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X + rect.Width - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+            }
+
+            void DrawChip(string key)
+            {
+                Vector2 sz = _uiFont.MeasureString(key);
+                float cw = sz.X + paddingX * 2f;
+                float cy = centerY - chipHeight / 2f;
+
+                Rectangle rect = new Rectangle((int)cx, (int)cy, (int)cw, (int)chipHeight);
+                DrawBorderedRect(rect, chipBorderColor, 1);
+
+                Vector2 textPos = new Vector2(
+                    rect.X + (rect.Width - sz.X) / 2f,
+                    rect.Y + (rect.Height - sz.Y) / 2f
+                );
+                _spriteBatch!.DrawString(_uiFont, key, textPos, textColor);
+
+                cx += cw;
+            }
+
+            void DrawText(string text, Color color)
+            {
+                Vector2 sz = _uiFont.MeasureString(text);
+                float ty = centerY - sz.Y / 2f;
+                _spriteBatch!.DrawString(_uiFont, text, new Vector2(cx, ty), color);
+                cx += sz.X;
+            }
+
+            void DrawDot(Color color)
+            {
+                float dy = centerY - dotSize / 2f;
+                _spriteBatch!.Draw(_pixel!, new Rectangle((int)cx, (int)dy, (int)dotSize, (int)dotSize), color);
+                cx += dotSize;
+            }
+
+            // Group 1
+            DrawChip("W");
+            cx += keySpacing;
+            DrawChip("S");
+            cx += labelSpacing;
+            DrawDot(textColor);
+            cx += labelSpacing;
+            DrawText(labelMover, textColor);
+
+            // Separator 1
+            cx += groupSpacing;
+            DrawDot(separatorColor);
+            cx += groupSpacing;
+
+            // Group 2
+            DrawChip("^");
+            cx += keySpacing;
+            DrawChip("v");
+            cx += labelSpacing;
+            DrawDot(textColor);
+            cx += labelSpacing;
+            DrawText(labelMover, textColor);
+
+            // Separator 2
+            cx += groupSpacing;
+            DrawDot(separatorColor);
+            cx += groupSpacing;
+
+            // Group 3
+            DrawChip("ESC");
+            cx += labelSpacing;
+            DrawDot(textColor);
+            cx += labelSpacing;
+            DrawText(labelPausa, textColor);
         }
 
         /// <summary>
