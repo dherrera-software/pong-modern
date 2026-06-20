@@ -51,7 +51,7 @@ namespace PongGame
             AudioManager.LoadSfx("button_click",  "audio/sfx/button_click");
 
             // Create a temporary pixel for ParticleManager initialization
-            Texture2D particlePixel = new Texture2D(GraphicsDevice, 1, 1);
+            Texture2D particlePixel = new(GraphicsDevice, 1, 1);
             particlePixel.SetData([Color.White]);
             ParticleManager.Initialize(particlePixel);
 

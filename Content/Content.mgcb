@@ -22,6 +22,10 @@
 
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
+/build:Fonts/SubtitleFont.spritefont
+
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
 /build:Fonts/ScoreFont.spritefont
 
 /importer:WavImporter
