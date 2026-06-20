@@ -15,6 +15,7 @@ namespace PongGame.Scenes
     {
         private SpriteFont? _displayFont;
         private SpriteFont? _uiFont;
+        private SpriteFont? _subtitleFont;
         private Texture2D? _pixel;
         private Button? _btn1v1;
         private Button? _btnVsAI;
@@ -61,8 +62,8 @@ namespace PongGame.Scenes
         // ── Footer breathing ──────────────────────────────────────────────────
         // Slower than subtitle (~5 s period)
         private const float FOOTER_FREQ = 2f * MathF.PI / 5f;
-        private const float FOOTER_MIN  = 0.50f;
-        private const float FOOTER_MAX  = 0.80f;
+        private const float FOOTER_MIN  = 0.30f;
+        private const float FOOTER_MAX  = 0.55f;
 
         private float FooterAlpha =>
             FOOTER_MIN + ((FOOTER_MAX - FOOTER_MIN) *
@@ -103,8 +104,9 @@ namespace PongGame.Scenes
         /// <param name="graphicsDevice">The active graphics device.</param>
         public void LoadContent(ContentManager content, GraphicsDevice graphicsDevice)
         {
-            _displayFont = content.Load<SpriteFont>("Fonts/DisplayFont");
-            _uiFont      = content.Load<SpriteFont>("Fonts/UIFont");
+            _displayFont  = content.Load<SpriteFont>("Fonts/DisplayFont");
+            _uiFont       = content.Load<SpriteFont>("Fonts/UIFont");
+            _subtitleFont = content.Load<SpriteFont>("Fonts/SubtitleFont");
             _spriteBatch = new SpriteBatch(graphicsDevice);
             _renderer    = new RenderLayerManager(_spriteBatch);
             _background  = new AnimatedBackground(75);
@@ -116,7 +118,7 @@ namespace PongGame.Scenes
             const int btnWidth = 320;
             const int btnHeight = 64;
             const int btnX  = (1280 - btnWidth) / 2;
-            const int btnY1 = ((720 - btnHeight) / 2) - 40;
+            const int btnY1 = ((720 - btnHeight) / 2) - 80;
             const int btnY2 = btnY1 + 90;
 
             _btn1v1 = new Button(
@@ -203,7 +205,7 @@ namespace PongGame.Scenes
         public void Draw(SpriteBatch spriteBatch)
         {
             if (_spriteBatch == null || _pixel == null || _displayFont == null
-                || _uiFont == null || _renderer == null || _background == null)
+                || _uiFont == null || _subtitleFont == null || _renderer == null || _background == null)
             {
                 return;
             }
@@ -297,10 +299,10 @@ namespace PongGame.Scenes
         private void DrawSubtitle()
         {
             const string subtitleText = "MODERN  EDITION";
-            Vector2 subtitleSize = _uiFont!.MeasureString(subtitleText);
+            Vector2 subtitleSize = _subtitleFont!.MeasureString(subtitleText);
             float subtitleX = (GameSettings.SCREEN_WIDTH - subtitleSize.X) / 2f;
             const float subtitleY = 185f;
-            _spriteBatch!.DrawString(_uiFont, subtitleText,
+            _spriteBatch!.DrawString(_subtitleFont, subtitleText,
                 new Vector2(subtitleX, subtitleY),
                 Theme.UIText * SubtitleAlpha);
         }
@@ -321,9 +323,9 @@ namespace PongGame.Scenes
                 // Bottom
                 _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + rect.Height - borderThickness, rect.Width, borderThickness), borderColor);
                 // Left
-                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - (2 * borderThickness)), borderColor);
                 // Right
-                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X + rect.Width - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                _spriteBatch!.Draw(_pixel!, new Rectangle((rect.X + rect.Width) - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - (2 * borderThickness)), borderColor);
             }
 
             // ── Draw disabled VS AI button (no animation) ────────────────────
@@ -331,7 +333,7 @@ namespace PongGame.Scenes
             {
                 Rectangle b = _btnVsAI.Bounds;
                 Rectangle displaced = new(b.X, (int)(b.Y + floatOff), b.Width, b.Height);
-                
+
                 // No background fill, only 1px border with Theme.DimText * 0.3f
                 DrawBorderedRect(displaced, Theme.DimText * 0.3f, 1);
 
@@ -343,35 +345,35 @@ namespace PongGame.Scenes
                     displaced.Y + ((displaced.Height - textSize.Y) / 2f));
                 _spriteBatch!.DrawString(_uiFont, mainLabel, textPos, Theme.UIText * 0.35f);
 
-                // Badge "PRÓXIMAMENTE"
+                // Badge "PROXIMAMENTE" — dentro del botón, borde derecho
                 const string badgeText = "PROXIMAMENTE";
-                const float badgeScale = 0.6f;
-                Vector2 originalBadgeSize = _uiFont.MeasureString(badgeText);
+                const float badgeScale = 0.55f;
+                Vector2 originalBadgeSize = _uiFont!.MeasureString(badgeText);
                 Vector2 badgeSize = originalBadgeSize * badgeScale;
-                
-                // Small rectangle background padding
-                float badgePaddingX = 6f;
-                float badgePaddingY = 3f;
-                float badgeW = badgeSize.X + badgePaddingX * 2f;
-                float badgeH = badgeSize.Y + badgePaddingY * 2f;
 
-                // Position badge at top-right corner of the button
-                float badgeX = displaced.X + displaced.Width - badgeW / 2f;
-                float badgeY = displaced.Y - badgeH / 2f;
+                float badgePadX = 5f;
+                float badgePadY = 2f;
+                float badgeW = badgeSize.X + badgePadX * 2f;
+                float badgeH = badgeSize.Y + badgePadY * 2f;
+
+                // Alineado a la derecha con margen interior de 8px, centrado verticalmente
+                float badgeX = displaced.X + displaced.Width - badgeW - 8f;
+                float badgeY = displaced.Y + (displaced.Height - badgeH) / 2f;
                 Rectangle badgeRect = new Rectangle((int)badgeX, (int)badgeY, (int)badgeW, (int)badgeH);
 
-                // Draw badge background
-                _spriteBatch!.Draw(_pixel!, badgeRect, Theme.DimText * 0.15f);
+                // Fondo del badge
+                _spriteBatch!.Draw(_pixel!, badgeRect, Theme.DimText * 0.12f);
 
-                // Draw badge border
-                DrawBorderedRect(badgeRect, Theme.DimText * 0.25f, 1);
+                // Borde del badge
+                DrawBorderedRect(badgeRect, Theme.DimText * 0.30f, 1);
 
-                // Draw badge text centered inside the badge rect
+                // Texto del badge centrado
                 Vector2 badgeTextPos = new Vector2(
-                    badgeRect.X + (badgeRect.Width - badgeSize.X) / 2f,
+                    badgeRect.X + (badgeRect.Width  - badgeSize.X) / 2f,
                     badgeRect.Y + (badgeRect.Height - badgeSize.Y) / 2f
                 );
-                _spriteBatch!.DrawString(_uiFont, badgeText, badgeTextPos, Theme.DimText, 0f, Vector2.Zero, badgeScale, SpriteEffects.None, 0f);
+                _spriteBatch!.DrawString(_uiFont, badgeText, badgeTextPos,
+                    Theme.DimText * 0.70f, 0f, Vector2.Zero, badgeScale, SpriteEffects.None, 0f);
             }
 
             // ── Draw 1v1 button with scale + float ───────────────────────────
@@ -395,26 +397,28 @@ namespace PongGame.Scenes
                     _spriteBatch!.Draw(_pixel!, dest, Theme.AccentP1 * (0.12f * hoverT));
                 }
 
-                // Draw 4-line border of 1-2px (using 2px) using Theme.AccentP1
-                DrawBorderedRect(dest, Theme.AccentP1, 2);
+                // Draw border: 1px en reposo, 2px en hover activo
+                int borderThickness = hoverT > 0.5f ? 2 : 1;
+                DrawBorderedRect(dest, Theme.AccentP1, borderThickness);
 
-                // Draw label centered in the scaled rect using Theme.AccentP1
+                // Draw label: color interpolado entre UIText (reposo) y AccentP1 (hover)
+                Color labelColor = Color.Lerp(Theme.UIText, Theme.AccentP1, hoverT);
                 const string label = "1 VS 1";
                 Vector2 textSize   = _uiFont!.MeasureString(label);
                 Vector2 textPos    = new(
                     dest.X + ((dest.Width  - textSize.X) / 2f),
                     dest.Y + ((dest.Height - textSize.Y) / 2f));
-                _spriteBatch!.DrawString(_uiFont, label, textPos, Theme.AccentP1);
+                _spriteBatch!.DrawString(_uiFont, label, textPos, labelColor);
 
                 // Agregar un triángulo/flecha "▶" a la izquierda del label, visible solo en hover
                 if (_btnScale[0] > BTN_SCALE_NORMAL + 0.001f)
                 {
                     // Draw custom triangle to the left of the label
-                    float arrowW = 5f;
-                    float arrowH = 8f;
+                    const float arrowW = 5f;
+                    const float arrowH = 8f;
                     float arrowX = textPos.X - arrowW - 8f;
-                    float arrowY = dest.Y + (dest.Height - arrowH) / 2f;
-                    
+                    float arrowY = dest.Y + ((dest.Height - arrowH) / 2f);
+
                     for (int col = 0; col < (int)arrowW; col++)
                     {
                         int sliceH = (int)arrowH - (col * 2);
@@ -432,38 +436,46 @@ namespace PongGame.Scenes
         private void DrawFooter()
         {
             float alpha = FooterAlpha;
+
+            // Línea separadora sutil encima del footer
+            const float separatorY = GameSettings.SCREEN_HEIGHT - 55f;
+            const int separatorW = 320;
+            int separatorX = (GameSettings.SCREEN_WIDTH - separatorW) / 2;
+            _spriteBatch!.Draw(_pixel!,
+                new Rectangle(separatorX, (int)separatorY, separatorW, 1),
+                Theme.DimText * 0.15f * alpha);
             Color chipBorderColor = Theme.DimText * 0.4f * alpha;
             Color textColor = Theme.DimText * alpha;
             Color separatorColor = Theme.DimText * 0.2f * alpha;
 
-            float paddingX = 6f;
-            float paddingY = 3f;
-            float keySpacing = 4f;
-            float labelSpacing = 6f;
-            float groupSpacing = 16f;
-            float dotSize = 3f;
+            const float paddingX = 6f;
+            const float paddingY = 3f;
+            const float keySpacing = 4f;
+            const float labelSpacing = 6f;
+            const float groupSpacing = 16f;
+            const float dotSize = 3f;
 
-            string labelMover = "mover";
-            string labelPausa = "pausa";
+            const string labelMover = "mover";
+            const string labelPausa = "pausa";
 
             float fontHeight = _uiFont!.MeasureString("W").Y;
-            float chipHeight = fontHeight + paddingY * 2f;
+            float chipHeight = fontHeight + (paddingY * 2f);
             const float footerY = GameSettings.SCREEN_HEIGHT - 40f;
-            float centerY = footerY + fontHeight / 2f;
+            float centerY = footerY + (fontHeight / 2f);
 
             // Measure widths
-            float wW = _uiFont.MeasureString("W").X + paddingX * 2f;
-            float wS = _uiFont.MeasureString("S").X + paddingX * 2f;
+            float wW = _uiFont.MeasureString("W").X + (paddingX * 2f);
+            float wS = _uiFont.MeasureString("S").X + (paddingX * 2f);
             float wMover1 = _uiFont.MeasureString(labelMover).X;
 
-            float wUp = _uiFont.MeasureString("^").X + paddingX * 2f;
-            float wDown = _uiFont.MeasureString("v").X + paddingX * 2f;
+            float wUp = _uiFont.MeasureString("^").X + (paddingX * 2f);
+            float wDown = _uiFont.MeasureString("v").X + (paddingX * 2f);
             float wMover2 = _uiFont.MeasureString(labelMover).X;
 
-            float wEsc = _uiFont.MeasureString("ESC").X + paddingX * 2f;
+            float wEsc = _uiFont.MeasureString("ESC").X + (paddingX * 2f);
             float wPausa = _uiFont.MeasureString(labelPausa).X;
 
-            float totalWidth = 
+            float totalWidth =
                 wW + keySpacing + wS + labelSpacing + dotSize + labelSpacing + wMover1 +
                 groupSpacing + dotSize + groupSpacing +
                 wUp + keySpacing + wDown + labelSpacing + dotSize + labelSpacing + wMover2 +
@@ -479,23 +491,23 @@ namespace PongGame.Scenes
                 // Bottom
                 _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + rect.Height - borderThickness, rect.Width, borderThickness), borderColor);
                 // Left
-                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X, rect.Y + borderThickness, borderThickness, rect.Height - (2 * borderThickness)), borderColor);
                 // Right
-                _spriteBatch!.Draw(_pixel!, new Rectangle(rect.X + rect.Width - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - 2 * borderThickness), borderColor);
+                _spriteBatch!.Draw(_pixel!, new Rectangle((rect.X + rect.Width) - borderThickness, rect.Y + borderThickness, borderThickness, rect.Height - (2 * borderThickness)), borderColor);
             }
 
             void DrawChip(string key)
             {
                 Vector2 sz = _uiFont.MeasureString(key);
-                float cw = sz.X + paddingX * 2f;
-                float cy = centerY - chipHeight / 2f;
+                float cw = sz.X + (paddingX * 2f);
+                float cy = centerY - (chipHeight / 2f);
 
-                Rectangle rect = new Rectangle((int)cx, (int)cy, (int)cw, (int)chipHeight);
+                Rectangle rect = new((int)cx, (int)cy, (int)cw, (int)chipHeight);
                 DrawBorderedRect(rect, chipBorderColor, 1);
 
-                Vector2 textPos = new Vector2(
-                    rect.X + (rect.Width - sz.X) / 2f,
-                    rect.Y + (rect.Height - sz.Y) / 2f
+                Vector2 textPos = new(
+                    rect.X + ((rect.Width - sz.X) / 2f),
+                    rect.Y + ((rect.Height - sz.Y) / 2f)
                 );
                 _spriteBatch!.DrawString(_uiFont, key, textPos, textColor);
 
@@ -505,14 +517,14 @@ namespace PongGame.Scenes
             void DrawText(string text, Color color)
             {
                 Vector2 sz = _uiFont.MeasureString(text);
-                float ty = centerY - sz.Y / 2f;
+                float ty = centerY - (sz.Y / 2f);
                 _spriteBatch!.DrawString(_uiFont, text, new Vector2(cx, ty), color);
                 cx += sz.X;
             }
 
             void DrawDot(Color color)
             {
-                float dy = centerY - dotSize / 2f;
+                float dy = centerY - (dotSize / 2f);
                 _spriteBatch!.Draw(_pixel!, new Rectangle((int)cx, (int)dy, (int)dotSize, (int)dotSize), color);
                 cx += dotSize;
             }
